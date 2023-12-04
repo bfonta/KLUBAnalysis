@@ -62,9 +62,10 @@ def run_limits(in_tags, channels, selections, selection_prefixes, masses,
     # Obtain limits on signal strength
     if combination:
         limit_modes = ('sel_years', 'chn_years', 'all_years',)
+        if period == "All":
+            assert all('year' in x for x in limit_modes)
     else:
-        limit_modes = ('separate', 'sel_group', 'chn_group', 'all_group')
-    assert any('year' in x for x in limit_modes) and period == "All"
+        limit_modes = ('separate', 'sel_group', 'chn_group', 'all_group')    
         
     for mode in limit_modes:
         commands.append('bash get_limits_res.sh --mode ' + mode + ' --masses {m} --var {v} --signal {s} --channels {chn} -b {b}')
@@ -112,14 +113,14 @@ if __name__ == '__main__':
                         help='run datacard combination across multiple data periods')
     FLAGS = parser.parse_args()
 
-    period = 'All' #All
+    period = 'UL18' #All
     signal = 'GGF_Radion'
     varsfit = ('DNNoutSM_kl_1',) # HHKin_mass',)
     
     channels = ('ETau', 'MuTau', 'TauTau')
 
     tag_ = 'Upstream'
-    suffix = '_DNNcut0p5'
+    suffix = ''
     #in_tags = ['{}_{}_{}{}'.format(tag_, x, period, suffix) for x in channels]
     in_tags = ['{}_{}{}'.format(tag_, x, suffix) for x in channels]
     #cfg_files = ['mainCfg_{}_{}{}.cfg'.format(x, period, suffix) for x in channels]
