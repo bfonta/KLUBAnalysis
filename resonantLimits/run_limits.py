@@ -19,7 +19,7 @@ def run(comm, dryrun):
 
 def run_limits(in_tags, channels, selections, selection_prefixes, masses,
                period, tag, var, signal, work_dir, config_files, noprep,
-               user, dryrun, combination):
+               user, dryrun, combination, injection_masses):
     """
     - selection_prefixes:
         Selection prefixes are used to group different categories sharing the same name prefixes. Used for mHH categories.
@@ -73,7 +73,9 @@ def run_limits(in_tags, channels, selections, selection_prefixes, masses,
         commands[-1] += ' --selections {selpref}'
         if not combination:
             commands[-1] += ' --tag {tag}'
-
+        if len(injection_masses) != 0:
+            commands[-1] += ' --injection {}'.format(*[x for x in injection_masses])
+            
     # Plot limits
     if combination:
         plot_modes =  ('all_years', 'overlay_channels_years', 'overlay_selections_years')
@@ -111,6 +113,8 @@ if __name__ == '__main__':
                         help='do not run the histograms preparing step')
     parser.add_argument('-c', '--combination', action='store_true',
                         help='run datacard combination across multiple data periods')
+    parser.add_argument('-i', '--injection_masses', nargs='+', default=[],
+                        help='inject signal at specific resonant mass(es)')
     FLAGS = parser.parse_args()
 
     period = 'UL18' #All
@@ -149,4 +153,6 @@ if __name__ == '__main__':
     work_dir = os.path.join('/home/llr/cms/', os.environ['USER'], 'CMSSW_11_1_9/src/KLUBAnalysis')
 
     for var in varsfit:
-        run_limits(in_tags, channels, selections, selection_prefixes, masses, period, out_tag, var, signal, work_dir, cfg_files, FLAGS.noprep, FLAGS.user, FLAGS.dryrun, FLAGS.combination)
+        run_limits(in_tags, channels, selections, selection_prefixes, masses,
+                   period, out_tag, var, signal, work_dir, cfg_files,
+                   FLAGS.noprep, FLAGS.user, FLAGS.dryrun, FLAGS.combination, FLAGS.injection_masses)

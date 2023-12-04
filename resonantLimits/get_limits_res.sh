@@ -3,12 +3,13 @@ declare -a CHANNELS;
 declare -a SELECTIONS;
 declare -a MASSES;
 declare -a MASSES_INJ;
-EXPECTED_SIGNAL=1
+EXPECTED_SIGNAL=1000
 
 # Defaults
 TAG=""
 VAR="DNNoutSM_kl_1"
 SIGNAL="ggFRadion"
+DRYRUN="0"
 MODE=""
 MODE_CHOICES=( "separate" "sel_group" "chn_group" "all_group" "sel_years" "chn_years" "all_years" )
 BASEDIR="${HOME}/CMSSW_11_1_9/src/KLUBAnalysis"
@@ -39,7 +40,7 @@ function print_usage_submit_skims {
     -m / --masses     [${MASSES_STR}]
     -i / --injection  [${MASSES_INJ_STR}]
     -l / --selections [${SELECTIONS_STR}] 
-    --dry-run         [${DRYRUN_STR}]      
+    -n / --dryrun     [${DRYRUN_STR}]      
 
 "
     printf "${USAGE}"
@@ -140,6 +141,10 @@ while [[ $# -gt 0 ]]; do
             done
             shift;
             ;;
+		-n|--dryrun)
+			DRYRUN="1"
+			shift;
+			;;
         *) # unknown option
 	    echo "Wrong parameter ${1}."
             exit 1
@@ -151,6 +156,7 @@ if [[ -z ${MODE} ]]; then
     echo "Select the data period via the '--mode' option."
     exit 1;
 fi
+echo ${#MASSES[@]}
 if [ ${#MASSES[@]} -eq 0 ]; then
     MASSES_DEFAULT=("250" "260" "270" "280" "300" "320" "350" "400" "450" "500" "550" "600" "650" "700" "750" "800" "850" "900" "1000" "1250" "1500" "1750" "2000" "2500" "3000")
 	for mass in ${MASSES_DEFAULT[@]}; do
@@ -158,7 +164,7 @@ if [ ${#MASSES[@]} -eq 0 ]; then
 		for elem in "${MASSES_INJ[@]}"; do
 			[[ $mass == "$elem" ]] && inside=1;
 		done
-		if [ ${inside[@]} -eq 0 ]; then
+		if [ ${inside} -eq 0 ]; then
 			MASSES+=(${mass})
 		fi
 	done
@@ -475,25 +481,26 @@ elif [ ${MODE} == "all_group" ]; then
     parallel -j 0 rm -f -- ${out_log} ::: ${MASSES[@]}
 	if [ ${#MASSES_INJ[@]} -ne 0 ]; then
 		parallel -j 0 rm -f -- ${out_log} ::: ${MASSES_INJ[@]}
-	fi
-	
-    parallel -j $((`nproc` - 1)) \
-			 combine -M AsymptoticLimits ${in_txt} \
-			 -n ${IDENTIFIER}_all \
-			 --run blind \
-			 --noFitAsimov \
-			 --freezeParameters SignalScale \
-			 -m {1} ">" ${out_log} ::: ${MASSES[@]}
+	fi 
+
+	declare -a COMMS_WRITE;
+	for minj in ${MASSES_INJ[@]}; do
+		proc="${SIGNAL}_${VAR}_${minj}"
+		in_txt="${card_dir}/comb.${proc}.txt"
+		out_log="${out_dir}/comb.${proc}.log"
+		COMMS_WRITE+=("combine -M AsymptoticLimits ${in_txt} -n ${IDENTIFIER}_all --run blind --noFitAsimov --freezeParameters SignalScale -m ${minj} > ${out_log}")
+	done
+    [[ ${DRYRUN} -eq 1 ]] && parallel echo {} ::: "${COMMS_WRITE}" || parallel -j $((`nproc` - 1)) {} ::: "${COMMS_WRITE[@]}"
 
 	if [ ${#MASSES_INJ[@]} -ne 0 ]; then
-		parallel -j $((`nproc` - 1)) \
-				 combine -M AsymptoticLimits ${in_txt} \
-				 -n ${IDENTIFIER}_all \
-				 --run blind \
-				 --noFitAsimov \
-				 --expectSignal ${EXPECTED_SIGNAL} \
-				 --freezeParameters SignalScale \
-				 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]}
+		declare -a COMMS_WRITE;
+		for minj in ${MASSES_INJ[@]}; do
+			proc="${SIGNAL}_${VAR}_${minj}"
+			in_txt="${card_dir}/comb.${proc}.txt"
+			out_log="${out_dir}/comb.${proc}.log"
+			COMMS_WRITE+=("combine -M AsymptoticLimits ${in_txt} -n ${IDENTIFIER}_all --run blind --noFitAsimov --expectSignal ${EXPECTED_SIGNAL} --freezeParameters SignalScale -m ${minj} > ${out_log}")
+		done
+		[[ ${DRYRUN} -eq 1 ]] && parallel echo {} ::: "${COMMS_WRITE}" || parallel -j $((`nproc` - 1)) {} ::: "${COMMS_WRITE[@]}"
 	fi
 		
 elif [ ${MODE} == "sel_years" ]; then
