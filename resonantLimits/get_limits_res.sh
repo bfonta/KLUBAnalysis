@@ -3,7 +3,7 @@ declare -a CHANNELS;
 declare -a SELECTIONS;
 declare -a MASSES;
 declare -a MASSES_INJ;
-EXPECTED_SIGNAL=1000
+EXPECTED_SIGNAL=0
 
 # Defaults
 TAG=""
@@ -156,7 +156,7 @@ if [[ -z ${MODE} ]]; then
     echo "Select the data period via the '--mode' option."
     exit 1;
 fi
-echo ${#MASSES[@]}
+
 if [ ${#MASSES[@]} -eq 0 ]; then
     MASSES_DEFAULT=("250" "260" "270" "280" "300" "320" "350" "400" "450" "500" "550" "600" "650" "700" "750" "800" "850" "900" "1000" "1250" "1500" "1750" "2000" "2500" "3000")
 	for mass in ${MASSES_DEFAULT[@]}; do
@@ -189,6 +189,14 @@ if [ ${#MASSES_INJ[@]} -ne 0 ]; then
 			MHIGH_INJ+=(${mass})
 		fi
 	done
+fi
+
+# generate Asimov dataset for all points if injection is requested
+# for at least one mass point
+if [ ${#MASSES_INJ[@]} -ne 0 ]; then
+	COMM_INJ=" -t -1 "
+else
+	COMM_INJ=" ${COMM_INJ} "
 fi
 
 declare -a CATEGORIES_BOOST;
@@ -237,8 +245,7 @@ if [ ${MODE} == "separate" ]; then
 	    parallel -j $((`nproc` - 1)) \
 		combine -M AsymptoticLimits ${in_txt} \
 		-n ${IDENTIFIER}_{2} \
-		--run blind \
-		--noFitAsimov \
+		${COMM_INJ} \
 		--freezeParameters SignalScale \
 		-m {1} ">" ${out_log} ::: ${MHIGH[@]} ::: ${CATEGORIES_BOOST[@]}
 	fi
@@ -247,8 +254,7 @@ if [ ${MODE} == "separate" ]; then
 	    parallel -j $((`nproc` - 1)) \
 		combine -M AsymptoticLimits ${in_txt} \
 		-n ${IDENTIFIER}_{2} \
-		--run blind \
-		--noFitAsimov \
+		${COMM_INJ} \
 		--freezeParameters SignalScale \
 		-m {1} ">" ${out_log} ::: ${MASSES[@]} ::: ${CATEGORIES_NOBOOST[@]}
 	fi
@@ -258,8 +264,7 @@ if [ ${MODE} == "separate" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_{2} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --expectSignal ${EXPECTED_SIGNAL} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MHIGH_INJ[@]} ::: ${CATEGORIES_BOOST[@]}
@@ -271,8 +276,7 @@ if [ ${MODE} == "separate" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_{2} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --expectSignal ${EXPECTED_SIGNAL} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]} ::: ${CATEGORIES_NOBOOST[@]}
@@ -307,8 +311,7 @@ elif [ ${MODE} == "sel_group" ]; then
 	parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_${chn} \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MASSES[@]}
 
@@ -316,8 +319,7 @@ elif [ ${MODE} == "sel_group" ]; then
 		parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_${chn} \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --expectSignal ${EXPECTED_SIGNAL} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]}
@@ -349,16 +351,14 @@ elif [ ${MODE} == "sel_group" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_${chn} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MASSES[@]}
 			if [ ${#MASSES_INJ[@]} -ne 0 ]; then
 				parallel -j $((`nproc` - 1)) \
 						 combine -M AsymptoticLimits ${in_txt} \
 						 -n ${IDENTIFIER}_${chn} \
-						 --run blind \
-						 --noFitAsimov \
+						 ${COMM_INJ} \
 						 --expectSignal ${EXPECTED_SIGNAL} \
 						 --freezeParameters SignalScale \
 						 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]}
@@ -369,16 +369,14 @@ elif [ ${MODE} == "sel_group" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_${chn} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MHIGH[@]}
 			if [ ${#MASSES_INJ[@]} -ne 0 ]; then
 				parallel -j $((`nproc` - 1)) \
 						 combine -M AsymptoticLimits ${in_txt} \
 						 -n ${IDENTIFIER}_${chn} \
-						 --run blind \
-						 --noFitAsimov \
+						 ${COMM_INJ} \
 						 --expectSignal ${EXPECTED_SIGNAL} \
 						 --freezeParameters SignalScale \
 						 -m {1} ">" ${out_log} ::: ${MHIGH_INJ[@]}
@@ -423,8 +421,7 @@ elif [ ${MODE} == "chn_group" ]; then
 		parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_{2} \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MHIGH[@]} ::: ${CATEGORIES_BOOST[@]}
 
@@ -432,8 +429,7 @@ elif [ ${MODE} == "chn_group" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_{2} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --expectSignal ${EXPECTED_SIGNAL} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MHIGH_INJ[@]} ::: ${CATEGORIES_BOOST[@]}
@@ -445,8 +441,7 @@ elif [ ${MODE} == "chn_group" ]; then
 		parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_{2} \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MASSES[@]} ::: ${CATEGORIES_NOBOOST[@]}
 
@@ -454,8 +449,7 @@ elif [ ${MODE} == "chn_group" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_{2} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --expectSignal ${EXPECTED_SIGNAL} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]} ::: ${CATEGORIES_NOBOOST[@]}
@@ -484,11 +478,11 @@ elif [ ${MODE} == "all_group" ]; then
 	fi 
 
 	declare -a COMMS_WRITE;
-	for minj in ${MASSES_INJ[@]}; do
+	for minj in ${MASSES[@]}; do
 		proc="${SIGNAL}_${VAR}_${minj}"
 		in_txt="${card_dir}/comb.${proc}.txt"
 		out_log="${out_dir}/comb.${proc}.log"
-		COMMS_WRITE+=("combine -M AsymptoticLimits ${in_txt} -n ${IDENTIFIER}_all --run blind --noFitAsimov --freezeParameters SignalScale -m ${minj} > ${out_log}")
+		COMMS_WRITE+=("combine -M AsymptoticLimits ${in_txt} -n ${IDENTIFIER}_all ${COMM_INJ} --freezeParameters SignalScale -m ${minj} > ${out_log}")
 	done
     [[ ${DRYRUN} -eq 1 ]] && parallel echo {} ::: "${COMMS_WRITE}" || parallel -j $((`nproc` - 1)) {} ::: "${COMMS_WRITE[@]}"
 
@@ -498,7 +492,7 @@ elif [ ${MODE} == "all_group" ]; then
 			proc="${SIGNAL}_${VAR}_${minj}"
 			in_txt="${card_dir}/comb.${proc}.txt"
 			out_log="${out_dir}/comb.${proc}.log"
-			COMMS_WRITE+=("combine -M AsymptoticLimits ${in_txt} -n ${IDENTIFIER}_all --run blind --noFitAsimov --expectSignal ${EXPECTED_SIGNAL} --freezeParameters SignalScale -m ${minj} > ${out_log}")
+			COMMS_WRITE+=("combine -M AsymptoticLimits ${in_txt} -n ${IDENTIFIER}_all ${COMM_INJ} --expectSignal ${EXPECTED_SIGNAL} --freezeParameters SignalScale -m ${minj} > ${out_log}")
 		done
 		[[ ${DRYRUN} -eq 1 ]] && parallel echo {} ::: "${COMMS_WRITE}" || parallel -j $((`nproc` - 1)) {} ::: "${COMMS_WRITE[@]}"
 	fi
@@ -523,8 +517,7 @@ elif [ ${MODE} == "sel_years" ]; then
 		parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_years \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MASSES[@]}
 
@@ -533,8 +526,7 @@ elif [ ${MODE} == "sel_years" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_years \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --expectSignal ${EXPECTED_SIGNAL} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]}
@@ -570,8 +562,7 @@ elif [ ${MODE} == "chn_years" ]; then
 		parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_{2} \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MHIGH[@]} ::: ${CATEGORIES_BOOST[@]}
 
@@ -579,8 +570,7 @@ elif [ ${MODE} == "chn_years" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_{2} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --expectSignal ${EXPECTED_SIGNAL} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MHIGH_INJ[@]} ::: ${CATEGORIES_BOOST[@]}
@@ -593,8 +583,7 @@ elif [ ${MODE} == "chn_years" ]; then
 		parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_{2} \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MASSES[@]} ::: ${CATEGORIES_NOBOOST[@]}
 
@@ -602,8 +591,7 @@ elif [ ${MODE} == "chn_years" ]; then
 			parallel -j $((`nproc` - 1)) \
 					 combine -M AsymptoticLimits ${in_txt} \
 					 -n ${IDENTIFIER}_{2} \
-					 --run blind \
-					 --noFitAsimov \
+					 ${COMM_INJ} \
 					 --expectSignal ${EXPECTED_SIGNAL} \
 					 --freezeParameters SignalScale \
 					 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]} ::: ${CATEGORIES_NOBOOST[@]}
@@ -631,8 +619,7 @@ elif [ ${MODE} == "all_years" ]; then
     parallel -j $((`nproc` - 1)) \
 			 combine -M AsymptoticLimits ${in_txt} \
 			 -n ${IDENTIFIER}_years \
-			 --run blind \
-			 --noFitAsimov \
+			 ${COMM_INJ} \
 			 --freezeParameters SignalScale \
 			 -m {1} ">" ${out_log} ::: ${MASSES[@]}
 
@@ -641,8 +628,7 @@ elif [ ${MODE} == "all_years" ]; then
 		parallel -j $((`nproc` - 1)) \
 				 combine -M AsymptoticLimits ${in_txt} \
 				 -n ${IDENTIFIER}_years \
-				 --run blind \
-				 --noFitAsimov \
+				 ${COMM_INJ} \
 				 --expectSignal ${EXPECTED_SIGNAL} \
 				 --freezeParameters SignalScale \
 				 -m {1} ">" ${out_log} ::: ${MASSES_INJ[@]}
