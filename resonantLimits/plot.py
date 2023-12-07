@@ -29,9 +29,10 @@ def parseFile(filename, CL='50.0', exp=True):
     f = open(filename)
     matches = []
     for line in f:
-        search = 'Expected {}%: r <'.format(CL)
         if not exp:
             search = 'Observed Limit: r <'
+        else:
+            search = 'Expected {}%: r <'.format(CL)
 
         if not search in line:
             continue
@@ -46,7 +47,7 @@ def parseFile(filename, CL='50.0', exp=True):
         return matches[-1]
 
 def create_limits_plot(indirs, outfile, masses, labels, signal, period,
-                       varfit, canvas, plot_atlas):
+                       varfit, canvas, plot_atlas, injection):
 
     # covers situations without channel or selection overlays
     # when overlays are shown, sigma intervals are not displayed
@@ -58,7 +59,7 @@ def create_limits_plot(indirs, outfile, masses, labels, signal, period,
     ndirs = len(indirs)
 
     # Legend definition
-    legend = ROOT.TLegend(0.7,0.7,0.9,0.89)
+    legend = ROOT.TLegend(0.7,0.65,0.9,0.89)
     legend.SetBorderSize(0)
     # if ndirs == 1:
     #    legend.SetHeader('95% CL upper limits')
@@ -214,8 +215,11 @@ def create_limits_plot(indirs, outfile, masses, labels, signal, period,
             
             fName = os.path.join(indir, 'comb.{}_{}_{}.log'.format(signal, varfit, mass))
          
-            exp   = 10.*parseFile(fName)            
-            obs   = exp #parseFile(fName, exp=False)
+            exp = 10.*parseFile(fName)
+            if injection:
+                obs = 10.*parseFile(fName, exp=False)
+            else:
+                obs = exp
             m1s_t = 10.*parseFile(fName, CL='16.0') 
             p1s_t = 10.*parseFile(fName, CL='84.0') 
             m2s_t = 10.*parseFile(fName, CL=' 2.5') 
@@ -269,7 +273,8 @@ def create_limits_plot(indirs, outfile, masses, labels, signal, period,
             agraph["sig2"][-1].SetLineColor(ROOT.kOrange)
             agraph["sig2"][-1].SetFillStyle(1001)
             
-            leg_labels = ('Observed', 'Median exp.')
+            leg_labels = ('Obs.' + ' (injection)' if injection else '',
+                          'Median exp.')
         else:
             leg_labels = ('Obs. ' + labels[2+idx][:20],
                           'Exp. ' + labels[2+idx][:20])
@@ -288,7 +293,6 @@ def create_limits_plot(indirs, outfile, masses, labels, signal, period,
         if plot_atlas and idx == 0:
             legend.AddEntry(agraph["atlas_nom"][-1], "ATLAS Full Run2 exp.", 'l')
             legend.AddEntry(agraph["atlas_sig1"][-1], 'ATLAS 68% exp.', 'f')
-        legend.AddEntry(agraph["exp"][-1], leg_labels[1], 'l')
         if ndirs==1:
             legend.AddEntry(agraph["sig1"][-1], '68% exp.', 'f')
             legend.AddEntry(agraph["sig2"][-1], '95% exp.', 'f')
@@ -297,7 +301,11 @@ def create_limits_plot(indirs, outfile, masses, labels, signal, period,
         if plot_atlas and idx == 0:
             agraph["atlas_sig1"][-1].Draw('3same')
             agraph["atlas_nom"][-1].Draw('Lsame')
+        legend.AddEntry(agraph["exp"][-1], leg_labels[1], 'l')
         agraph["exp"][-1].Draw('Lsame')
+        if injection:
+            legend.AddEntry(agraph["obs"][-1], leg_labels[0], 'l')
+            agraph["obs"][-1].Draw('Lsame')
 
     ptext.Draw()
     ptext2.Draw()
@@ -344,7 +352,7 @@ def plot(args, outdir):
     canvas.SetGridy()
 
     opt = dict(signal=args.signal, period=args.period, canvas=canvas, varfit=args.var,
-               plot_atlas=args.atlas)
+               plot_atlas=args.atlas, injection=args.injection)
     comb_chn = 'bb #tau_{e}#tau_{h} + bb #tau_{#mu}#tau_{h} + bb #tau_{h}#tau_{h}'
     comb_cat = 'Combined categories'
     if args.mode == 'separate':
@@ -484,6 +492,8 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--user', default='', help='EOS username to store the plots.')
     parser.add_argument('-v', '--var', help='variable to perform the maximum likelihood fit')
     parser.add_argument('--atlas', action='store_true', help='overlay ATLAS full Run2 result')
+    parser.add_argument('--injection', action='store_true',
+                        help='signal being injected at specific mass points.')
     FLAGS = parser.parse_args()
 
     user = os.environ['USER'] if FLAGS.user=='' else FLAGS.user

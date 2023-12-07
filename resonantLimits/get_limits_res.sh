@@ -3,7 +3,6 @@ declare -a CHANNELS;
 declare -a SELECTIONS;
 declare -a MASSES;
 declare -a MASSES_INJ;
-EXPECTED_SIGNAL=0
 
 # Defaults
 TAG=""
@@ -13,6 +12,7 @@ DRYRUN="0"
 MODE=""
 MODE_CHOICES=( "separate" "sel_group" "chn_group" "all_group" "sel_years" "chn_years" "all_years" )
 BASEDIR="${HOME}/CMSSW_11_1_9/src/KLUBAnalysis"
+EXPECTED_SIGNAL=0.3
 
 HELP_STR="Prints this help message."
 TAG_STR="(String) Defines tag for the output. Defaults to '${TAG}'."
@@ -24,6 +24,7 @@ MASSES_STR="(Array of ints) Resonant masses."
 MASSES_INJ_STR="(Array of ints) Resonant masses with injected signal."
 CHANNELS_STR="(Array of strings) Channels."
 SELECTIONS_STR="(Array of strings) Selection categories."
+EXP_SIGNAL_STR="(Float) Expected signal in signal strength units. Defaults to '${EXPECTED_SIGNAL}'."
 BASEDIR_STR="(String) Base directory."
 function print_usage_submit_skims {
     USAGE="
@@ -39,7 +40,8 @@ function print_usage_submit_skims {
     -c / --channels   [${CHANNELS_STR}] 
     -m / --masses     [${MASSES_STR}]
     -i / --injection  [${MASSES_INJ_STR}]
-    -l / --selections [${SELECTIONS_STR}] 
+    -l / --selections [${SELECTIONS_STR}]
+	-e / --expsignal  [${EXPECTED_SIGNAL}] 
     -n / --dryrun     [${DRYRUN_STR}]      
 
 "
@@ -128,6 +130,10 @@ while [[ $# -gt 0 ]]; do
                 fi
             done
             shift;
+            ;;
+		-e|--expsignal)
+            EXPECTED_SIGNAL=${2}
+            shift; shift;
             ;;
         -c|--channels)
             chn_flag=0
