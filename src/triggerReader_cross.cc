@@ -281,8 +281,6 @@ bool triggerReader_cross::checkSingleTau  (Long64_t triggerbit_1, Long64_t match
       goodType = match1 ? CheckBit(goodTriggerType1, _singleTauTriggers.at(i)) : CheckBit (goodTriggerType2, _singleTauTriggers.at(i));
 
       _trgNoOverlap = CheckBit(trgNoOverlap, _singleTauTriggers.at(i)); // is this needed here?
-
-	  std::cout << "===== in1 " << matchFlag1 << " " << _singleTauTriggers.at(i) << ": " << match1 << " " << match2 << " " << match << " --- " << goodType << " " << _trgNoOverlap << std::endl;
 	  
       if (match && goodType && _trgNoOverlap)
 		{

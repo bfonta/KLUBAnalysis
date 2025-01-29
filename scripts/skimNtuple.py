@@ -66,8 +66,8 @@ def write_condor_file(d, condor_name, shell_exec, c_exec, py_exec,
                                 'transfer_input_files = {}'.format(py_exec),
                                 '',
                                 'T3Queue = {}'.format(queue_mode),
-                                'WNTag=el7',
-                                '+SingularityCmd = ""',
+                                'WNTag=el9',
+                                '+SingularityCmd = "/grid_mnt/data__data.polcms/cms/cuisset/ZHbbtautau/framework/el7_container"',
                                 '',
                                 'request_cpus   = 1',
                                 'request_memory = 4GB',
@@ -209,6 +209,9 @@ def skim_ntuple(FLAGS, curr_folder):
                             'source /cvmfs/cms.cern.ch/cmsset_default.sh',
                             'eval `scram r -sh`',
                             'cd {}'.format(curr_folder),
+                            'cmsenv',
+                            'scram b',
+                            'make && make exe',
                             'source scripts/setup.sh')) + '\n' )
                 
         yes_or_no = lambda s : '1' if bool(s) else '0'
